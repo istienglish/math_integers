@@ -1,0 +1,723 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Integer Jumping Frog</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Quicksand:wght=500;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Quicksand', sans-serif;
+        }
+        .font-game {
+            font-family: 'Fredoka One', cursive;
+        }
+        .water-gradient {
+            background: radial-gradient(circle, #0e7490 0%, #155e75 100%);
+        }
+        .frog-jump {
+            animation: jump 0.6s cubic-bezier(0.25, 1, 0.5, 1);
+        }
+        @keyframes jump {
+            0%, 100% { transform: translateY(0) scaleX(1); }
+            50% { transform: translateY(-80px) scaleX(0.9) scaleY(1.1); }
+        }
+    </style>
+</head>
+<body class="bg-slate-100 min-h-screen flex flex-col items-center justify-between overflow-x-hidden select-none">
+
+    <!-- Top Navigation / Status -->
+    <header class="w-full max-w-4xl bg-white shadow-md rounded-b-2xl p-4 flex justify-between items-center z-10">
+        <div class="flex items-center gap-3">
+            <span class="text-3xl">🐸</span>
+            <div>
+                <h1 class="text-xl font-game text-emerald-600 tracking-wide">Smart Frog</h1>
+                <p class="text-xs text-slate-500 font-bold">Integer Adventure</p>
+            </div>
+        </div>
+        <div class="flex items-center gap-6">
+            <div class="text-center">
+                <span class="text-xs text-slate-400 font-bold block">SCORE</span>
+                <span id="score-display" class="text-2xl font-game text-blue-600">0</span>
+            </div>
+            <div class="text-center">
+                <span class="text-xs text-slate-400 font-bold block">LIVES</span>
+                <span id="lives-display" class="text-2xl flex gap-1">❤️❤️❤️</span>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Game Arena -->
+    <main class="w-full max-w-4xl flex-1 flex flex-col justify-center items-center p-4 relative">
+        
+        <!-- Welcome Screen -->
+        <div id="welcome-screen" class="w-full bg-white rounded-3xl p-8 shadow-xl border-4 border-emerald-400 text-center flex flex-col items-center gap-6 max-w-xl">
+            <div class="text-6xl animate-bounce my-2">🐸</div>
+            <h2 class="text-3xl font-game text-emerald-700">Integer Jumping Frog</h2>
+            <p class="text-slate-600 leading-relaxed text-sm md:text-base">
+                Help <strong>Kiko the Frog</strong> cross the pond by solving integer math mysteries! Practice addition, subtraction, multiplication, and division in a fun way.
+            </p>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 w-full mt-4">
+                <button onclick="startGame('line')" class="bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white font-game py-4 px-6 rounded-2xl shadow-lg transition-all duration-300 transform hover:-translate-y-1">
+                    🟢 Mode 1: Number Line
+                    <span class="block text-xs font-sans font-bold mt-1 text-emerald-100">Jump left or right to solve</span>
+                </button>
+                <button onclick="startGame('lake')" class="bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700 text-white font-game py-4 px-6 rounded-2xl shadow-lg transition-all duration-300 transform hover:-translate-y-1">
+                    🌸 Mode 2: Lilypad Lake
+                    <span class="block text-xs font-sans font-bold mt-1 text-cyan-100">Step on the correct answer</span>
+                </button>
+            </div>
+            <div class="text-xs text-slate-400 mt-2 font-bold">💡 Turn on your speakers for awesome retro sound effects!</div>
+        </div>
+
+        <!-- Mode 1: Garis Bilangan Arena -->
+        <div id="game-line-screen" class="hidden w-full bg-white rounded-3xl p-6 shadow-xl border-4 border-emerald-400 flex flex-col gap-6 relative">
+            <div class="flex justify-between items-center border-b pb-3">
+                <span class="bg-emerald-100 text-emerald-800 font-bold px-3 py-1 rounded-full text-xs">MODE: NUMBER LINE</span>
+                <button onclick="showMainMenu()" class="text-slate-400 hover:text-red-500 text-sm font-bold">Back to Menu</button>
+            </div>
+
+            <!-- Question and Instructions -->
+            <div class="text-center my-2">
+                <p class="text-slate-500 text-sm font-bold uppercase tracking-wider mb-1">Question</p>
+                <div id="line-question" class="text-2xl md:text-3xl font-game text-slate-800">
+                    Frog starts at <span class="text-blue-600">0</span>. Jump <span class="text-emerald-600">+3</span> steps. Where does it land?
+                </div>
+            </div>
+
+            <!-- Number Line Visualization Container -->
+            <div class="water-gradient rounded-2xl p-6 md:p-10 relative overflow-x-auto min-h-[160px] flex items-center justify-center">
+                <!-- Water Waves SVG Background -->
+                <div class="absolute inset-0 opacity-10 pointer-events-none">
+                    <svg width="100%" height="100%">
+                        <pattern id="wave" width="40" height="40" patternUnits="userSpaceOnUse">
+                            <path d="M 0 20 Q 10 10, 20 20 T 40 20" fill="none" stroke="white" stroke-width="2"/>
+                        </pattern>
+                        <rect width="100%" height="100%" fill="url(#wave)" />
+                    </svg>
+                </div>
+
+                <!-- Interactive Track (Scale -6 to 6 for standard mobile-friendly visualization) -->
+                <div class="relative w-[650px] h-20 flex items-center justify-between px-4">
+                    <!-- Base Axis Line -->
+                    <div class="absolute left-0 right-0 h-1 bg-yellow-400 rounded-full"></div>
+                    
+                    <!-- Line ticks & Lilypads -->
+                    <div class="absolute left-0 right-0 top-0 bottom-0 flex justify-between items-center" id="number-line-pads">
+                        <!-- Filled by JS -->
+                    </div>
+
+                    <!-- Frog Actor -->
+                    <div id="frog-actor" class="absolute w-12 h-12 transition-all duration-300 ease-out z-10 bottom-6 flex items-center justify-center pointer-events-none" style="left: calc(50% - 24px);">
+                        <!-- SVG Cute Frog -->
+                        <svg class="w-12 h-12 drop-shadow-lg" viewBox="0 0 100 100">
+                            <ellipse cx="50" cy="55" rx="35" ry="30" fill="#10B981" />
+                            <ellipse cx="32" cy="30" rx="12" ry="12" fill="#10B981" />
+                            <ellipse cx="68" cy="30" rx="12" ry="12" fill="#10B981" />
+                            <circle cx="32" cy="30" rx="6" fill="white" />
+                            <circle cx="68" cy="30" rx="6" fill="white" />
+                            <circle cx="32" cy="30" rx="3" fill="black" />
+                            <circle cx="68" cy="30" rx="3" fill="black" />
+                            <path d="M 30 65 Q 50 80 70 65" fill="none" stroke="#047857" stroke-width="5" stroke-linecap="round" />
+                            <!-- Cheeks -->
+                            <circle cx="23" cy="55" rx="5" ry="3" fill="#F87171" opacity="0.6"/>
+                            <circle cx="77" cy="55" rx="5" ry="3" fill="#F87171" opacity="0.6"/>
+                        </svg>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Selection Interface -->
+            <div class="flex flex-col items-center gap-3">
+                <p class="text-sm text-slate-500 font-bold">Choose the correct landing point by clicking the lilypads above or the buttons below!</p>
+                <div class="flex justify-center gap-2 flex-wrap" id="number-buttons-container">
+                    <!-- Alternative Buttons for easy access -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Mode 2: Danau Teratai Arena -->
+        <div id="game-lake-screen" class="hidden w-full bg-white rounded-3xl p-6 shadow-xl border-4 border-emerald-400 flex flex-col gap-6 relative">
+            <div class="flex justify-between items-center border-b pb-3">
+                <span class="bg-cyan-100 text-cyan-800 font-bold px-3 py-1 rounded-full text-xs">MODE: LILYPAD LAKE</span>
+                <button onclick="showMainMenu()" class="text-slate-400 hover:text-red-500 text-sm font-bold">Back to Menu</button>
+            </div>
+
+            <!-- Question Card -->
+            <div class="bg-gradient-to-r from-emerald-50 to-teal-50 rounded-2xl p-6 text-center border border-emerald-100">
+                <p class="text-slate-500 text-xs font-bold uppercase tracking-wider mb-2">Solve This Operation:</p>
+                <div id="lake-question" class="text-4xl font-game text-slate-800 tracking-wide">
+                    -5 + (-8) = ...
+                </div>
+            </div>
+
+            <!-- Lilypad Options (Interactive Platform) -->
+            <div class="water-gradient rounded-2xl p-6 min-h-[300px] flex flex-col justify-between items-center relative overflow-hidden">
+                <!-- Background Decoration -->
+                <div class="absolute inset-0 opacity-15 pointer-events-none">
+                    <svg width="100%" height="100%">
+                        <circle cx="20%" cy="30%" r="40" fill="none" stroke="white" stroke-width="2"/>
+                        <circle cx="80%" cy="70%" r="60" fill="none" stroke="white" stroke-width="3"/>
+                    </svg>
+                </div>
+
+                <!-- Level progress -->
+                <div class="text-cyan-100 text-xs font-bold z-10 bg-black/30 px-3 py-1 rounded-full">
+                    Steps to Safely Cross: <span id="steps-remaining">5</span> 👣
+                </div>
+
+                <!-- Floating Lilypads Grid -->
+                <div class="grid grid-cols-2 gap-8 w-full max-w-md my-4 z-10" id="lake-options-container">
+                    <!-- Generatated via JS -->
+                </div>
+
+                <!-- Visual start pad where Katak sits initially -->
+                <div class="w-full flex justify-center items-center h-16 z-0 relative">
+                    <div id="lake-base-pad" class="w-24 h-8 bg-emerald-950/40 rounded-full flex items-center justify-center text-xs text-emerald-200 font-bold border border-emerald-800">
+                        START
+                    </div>
+                    <!-- Small Lake Frog Actor -->
+                    <div id="lake-frog-actor" class="absolute w-12 h-12 transition-all duration-500 ease-out flex items-center justify-center bottom-4">
+                        <svg class="w-12 h-12 drop-shadow-md" viewBox="0 0 100 100">
+                            <ellipse cx="50" cy="55" rx="35" ry="30" fill="#10B981" />
+                            <ellipse cx="32" cy="30" rx="12" ry="12" fill="#10B981" />
+                            <ellipse cx="68" cy="30" rx="12" ry="12" fill="#10B981" />
+                            <circle cx="32" cy="30" rx="6" fill="white" />
+                            <circle cx="68" cy="30" rx="6" fill="white" />
+                            <circle cx="32" cy="30" rx="3" fill="black" />
+                            <circle cx="68" cy="30" rx="3" fill="black" />
+                            <path d="M 30 65 Q 50 80 70 65" fill="none" stroke="#047857" stroke-width="5" stroke-linecap="round" />
+                        </svg>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Score / Feedback Message Modal Overlay (Hidden by default) -->
+        <div id="feedback-toast" class="absolute top-10 transform scale-0 opacity-0 transition-all duration-300 pointer-events-none z-50 bg-slate-900 text-white px-6 py-3 rounded-full text-lg font-bold shadow-lg flex items-center gap-2">
+            <span id="feedback-emoji">🌟</span>
+            <span id="feedback-text">Correct! Great job!</span>
+        </div>
+
+        <!-- Game Over & Win Modal -->
+        <div id="end-modal" class="hidden fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+            <div class="bg-white rounded-3xl p-8 max-w-md w-full shadow-2xl border-4 border-blue-400 text-center flex flex-col items-center gap-6 animate-scaleIn">
+                <div id="end-emoji" class="text-7xl">🏆</div>
+                <h3 id="end-title" class="text-3xl font-game text-slate-800">You Win! Excellent!</h3>
+                <p id="end-desc" class="text-slate-600">You have mastered addition and subtraction of integers!</p>
+                
+                <div class="bg-slate-50 w-full rounded-2xl p-4 flex justify-around border">
+                    <div>
+                        <span class="text-xs text-slate-400 font-bold block">FINAL SCORE</span>
+                        <span id="end-score" class="text-3xl font-game text-blue-600">120</span>
+                    </div>
+                    <div>
+                        <span class="text-xs text-slate-400 font-bold block">MODE</span>
+                        <span id="end-mode" class="text-lg font-bold text-slate-700">Number Line</span>
+                    </div>
+                </div>
+
+                <div class="flex gap-4 w-full">
+                    <button onclick="showMainMenu()" class="flex-1 bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold py-3 px-4 rounded-xl transition">
+                        Main Menu
+                    </button>
+                    <button id="retry-btn" class="flex-1 bg-emerald-500 hover:bg-emerald-600 text-white font-game py-3 px-4 rounded-xl shadow-md transition">
+                        Play Again
+                    </button>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Footer Explanation -->
+    <footer class="w-full max-w-4xl bg-white border-t p-4 text-center text-xs text-slate-400 font-bold rounded-t-2xl">
+        Smart Frog Mathematics • Created for Interactive Integer Math Learning
+    </footer>
+
+    <!-- Audio Synthesis and Game Logic Script -->
+    <script>
+        // Custom Audio Synthesizer using Web Audio API (No External assets dependency!)
+        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+        let audioCtx;
+
+        function initAudio() {
+            if (!audioCtx) {
+                audioCtx = new AudioCtx();
+            }
+        }
+
+        function playSound(type) {
+            initAudio();
+            if (!audioCtx) return;
+
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+
+            const now = audioCtx.currentTime;
+
+            if (type === 'jump') {
+                // Pitch sweep up for a bouncy frog leap
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(150, now);
+                osc.frequency.exponentialRampToValueAtTime(400, now + 0.3);
+                gain.gain.setValueAtTime(0.3, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
+                osc.start(now);
+                osc.stop(now + 0.3);
+            } else if (type === 'correct') {
+                // Happy chord progression (C major arpeggio rapid)
+                osc.type = 'sine';
+                const notes = [523.25, 659.25, 783.99, 1046.50]; // C5, E5, G5, C6
+                notes.forEach((freq, index) => {
+                    const oscSeq = audioCtx.createOscillator();
+                    const gainSeq = audioCtx.createGain();
+                    oscSeq.connect(gainSeq);
+                    gainSeq.connect(audioCtx.destination);
+                    oscSeq.type = 'sine';
+                    oscSeq.frequency.setValueAtTime(freq, now + (index * 0.08));
+                    gainSeq.gain.setValueAtTime(0.15, now + (index * 0.08));
+                    gainSeq.gain.exponentialRampToValueAtTime(0.01, now + (index * 0.08) + 0.2);
+                    oscSeq.start(now + (index * 0.08));
+                    oscSeq.stop(now + (index * 0.08) + 0.25);
+                });
+            } else if (type === 'wrong') {
+                // Unhappy buzzer sound
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(130, now);
+                osc.frequency.linearRampToValueAtTime(90, now + 0.4);
+                gain.gain.setValueAtTime(0.2, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.4);
+                osc.start(now);
+                osc.stop(now + 0.4);
+            } else if (type === 'victory') {
+                // Triumph fanfare
+                const notes = [523.25, 523.25, 523.25, 659.25, 783.99, 1046.50];
+                const timings = [0, 0.1, 0.2, 0.3, 0.4, 0.6];
+                notes.forEach((freq, index) => {
+                    const o = audioCtx.createOscillator();
+                    const g = audioCtx.createGain();
+                    o.connect(g);
+                    g.connect(audioCtx.destination);
+                    o.frequency.setValueAtTime(freq, now + timings[index]);
+                    g.gain.setValueAtTime(0.15, now + timings[index]);
+                    g.gain.exponentialRampToValueAtTime(0.01, now + timings[index] + (index === 5 ? 0.8 : 0.25));
+                    o.start(now + timings[index]);
+                    o.stop(now + timings[index] + (index === 5 ? 0.8 : 0.3));
+                });
+            }
+        }
+
+        // Game State Variables
+        let currentMode = 'line'; // 'line' or 'lake'
+        let score = 0;
+        let lives = 3;
+        let level = 1;
+        let currentQuestion = {};
+        
+        // Garis Bilangan Mode variables
+        const LINE_MIN = -6;
+        const LINE_MAX = 6;
+        let frogLinePos = 0; // Current position on visual line
+        let targetPos = 0;   // Correct target to solve
+
+        // Danau Teratai Mode variables
+        let lakeRemainingSteps = 5;
+
+        // Initialize App UI Elements
+        const welcomeScreen = document.getElementById('welcome-screen');
+        const gameLineScreen = document.getElementById('game-line-screen');
+        const gameLakeScreen = document.getElementById('game-lake-screen');
+        const scoreDisplay = document.getElementById('score-display');
+        const livesDisplay = document.getElementById('lives-display');
+        const feedbackToast = document.getElementById('feedback-toast');
+        const feedbackText = document.getElementById('feedback-text');
+        const feedbackEmoji = document.getElementById('feedback-emoji');
+        const endModal = document.getElementById('end-modal');
+
+        // Main entry point
+        function startGame(mode) {
+            initAudio();
+            currentMode = mode;
+            score = 0;
+            lives = 3;
+            level = 1;
+            
+            updateStatusDisplays();
+            
+            welcomeScreen.classList.add('hidden');
+            endModal.classList.add('hidden');
+            
+            if (mode === 'line') {
+                gameLineScreen.classList.remove('hidden');
+                gameLakeScreen.classList.add('hidden');
+                initLineMode();
+            } else {
+                gameLineScreen.classList.add('hidden');
+                gameLakeScreen.classList.remove('hidden');
+                lakeRemainingSteps = 5;
+                document.getElementById('steps-remaining').textContent = lakeRemainingSteps;
+                initLakeMode();
+            }
+        }
+
+        function showMainMenu() {
+            welcomeScreen.classList.remove('hidden');
+            gameLineScreen.classList.add('hidden');
+            gameLakeScreen.classList.add('hidden');
+            endModal.classList.add('hidden');
+        }
+
+        function updateStatusDisplays() {
+            scoreDisplay.textContent = score;
+            livesDisplay.textContent = '❤️'.repeat(Math.max(0, lives)) + '🖤'.repeat(Math.max(0, 3 - lives));
+        }
+
+        // Mode 1: Garis Bilangan Logic
+        function initLineMode() {
+            // Build the visual number line pads dynamically
+            const linePadsContainer = document.getElementById('number-line-pads');
+            linePadsContainer.innerHTML = '';
+            
+            for (let i = LINE_MIN; i <= LINE_MAX; i++) {
+                // Create a Lilypad element for each index
+                const pad = document.createElement('div');
+                pad.className = `w-10 h-10 rounded-full flex flex-col items-center justify-center relative cursor-pointer group transition-all duration-300`;
+                pad.innerHTML = `
+                    <!-- Lilypad Leaf -->
+                    <div class="absolute inset-0 bg-emerald-500/70 hover:bg-emerald-400 group-hover:scale-110 rounded-full shadow border-b-4 border-emerald-700 transition"></div>
+                    <!-- Number Label -->
+                    <span class="relative text-white font-game text-sm z-10">${i}</span>
+                `;
+                pad.onclick = () => handleLineChoice(i);
+                linePadsContainer.appendChild(pad);
+            }
+
+            // Create supplementary answer buttons below for easier mobile touch
+            const buttonsContainer = document.getElementById('number-buttons-container');
+            buttonsContainer.innerHTML = '';
+            for (let i = LINE_MIN; i <= LINE_MAX; i++) {
+                const btn = document.createElement('button');
+                btn.className = "bg-slate-200 hover:bg-emerald-500 hover:text-white font-game w-10 h-10 rounded-xl shadow transition text-sm flex items-center justify-center";
+                btn.textContent = i;
+                btn.onclick = () => handleLineChoice(i);
+                buttonsContainer.appendChild(btn);
+            }
+
+            // Reset Frog Pos to random
+            frogLinePos = Math.floor(Math.random() * 5) - 2; // initial position between -2 and 2
+            moveFrogToLineIndex(frogLinePos);
+
+            generateLineQuestion();
+        }
+
+        function moveFrogToLineIndex(index) {
+            const actor = document.getElementById('frog-actor');
+            // Calculate percentage position along the line container
+            const totalSteps = LINE_MAX - LINE_MIN;
+            const percentage = ((index - LINE_MIN) / totalSteps) * 100;
+            // Align center nicely
+            actor.style.left = `calc(${percentage}% - 24px)`;
+        }
+
+        function generateLineQuestion() {
+            // Create a simple addition or subtraction that doesn't exceed bounds [-6, 6]
+            let startingPoint = frogLinePos;
+            let action = Math.random() > 0.5 ? 'add' : 'sub';
+            let steps = 0;
+            
+            if (action === 'add') {
+                // Max we can add is LINE_MAX - startingPoint
+                let maxAdd = LINE_MAX - startingPoint;
+                if (maxAdd <= 0) {
+                    action = 'sub';
+                } else {
+                    steps = Math.floor(Math.random() * Math.min(6, maxAdd)) + 1;
+                }
+            }
+            
+            if (action === 'sub') {
+                // Max we can subtract is startingPoint - LINE_MIN
+                let maxSub = startingPoint - LINE_MIN;
+                if (maxSub <= 0) {
+                    // Fallback to safe add
+                    action = 'add';
+                    steps = Math.floor(Math.random() * (LINE_MAX - startingPoint)) + 1;
+                } else {
+                    steps = Math.floor(Math.random() * Math.min(6, maxSub)) + 1;
+                }
+            }
+
+            if (action === 'add') {
+                targetPos = startingPoint + steps;
+                currentQuestion = {
+                    text: `Frog starts at <span class="text-blue-600 font-bold">${startingPoint}</span>. Jump <span class="text-emerald-600 font-bold">+${steps}</span> steps. Where does it land?`,
+                    startingPoint: startingPoint,
+                    step: steps,
+                    correct: targetPos
+                };
+            } else {
+                targetPos = startingPoint - steps;
+                currentQuestion = {
+                    text: `Frog starts at <span class="text-blue-600 font-bold">${startingPoint}</span>. Jump <span class="text-red-500 font-bold">-${steps}</span> steps. Where does it land?`,
+                    startingPoint: startingPoint,
+                    step: -steps,
+                    correct: targetPos
+                };
+            }
+
+            document.getElementById('line-question').innerHTML = currentQuestion.text;
+        }
+
+        async function animateLineHop(from, to) {
+            const actor = document.getElementById('frog-actor');
+            const stepDirection = from < to ? 1 : -1;
+            
+            // Loop step-by-step hops to illustrate counting on number line
+            for (let curr = from; curr !== to + stepDirection; curr += stepDirection) {
+                if (curr === from) continue; // skip initial
+                
+                playSound('jump');
+                actor.classList.add('frog-jump');
+                moveFrogToLineIndex(curr);
+                
+                // wait for animation to complete
+                await new Promise(resolve => setTimeout(resolve, 300));
+                actor.classList.remove('frog-jump');
+                await new Promise(resolve => setTimeout(resolve, 200));
+            }
+            
+            frogLinePos = to;
+        }
+
+        async function handleLineChoice(chosenNum) {
+            // Temporarily disable buttons to prevent rapid clicks during animations
+            document.querySelectorAll('#number-buttons-container button').forEach(b => b.disabled = true);
+            
+            if (chosenNum === targetPos) {
+                // Correct answer!
+                showFeedback(true, "Yes! Perfect leap!");
+                score += 15;
+                updateStatusDisplays();
+                
+                // Animate frog jumping to correct target
+                await animateLineHop(frogLinePos, targetPos);
+                
+                level++;
+                if (level > 8) {
+                    endGame(true, "Incredible! You have completed the Number Line adventure perfectly!");
+                } else {
+                    setTimeout(() => {
+                        generateLineQuestion();
+                        document.querySelectorAll('#number-buttons-container button').forEach(b => b.disabled = false);
+                    }, 800);
+                }
+            } else {
+                // Incorrect
+                playSound('wrong');
+                showFeedback(false, `Oops! Not quite right.`);
+                lives--;
+                updateStatusDisplays();
+                
+                if (lives <= 0) {
+                    endGame(false, "The frog is exhausted! Let's practice positive and negative integers again.");
+                } else {
+                    document.querySelectorAll('#number-buttons-container button').forEach(b => b.disabled = false);
+                }
+            }
+        }
+
+        // Mode 2: Danau Teratai (Interactive Path Clearing)
+        function initLakeMode() {
+            generateLakeQuestion();
+        }
+
+        function generateLakeQuestion() {
+            // Pick arithmetic operation suited to level progression
+            let op = '+';
+            if (score >= 30) op = '-';
+            if (score >= 60) op = '*';
+            if (score >= 95) {
+                const ops = ['+', '-', '*', '/'];
+                op = ops[Math.floor(Math.random() * ops.length)];
+            } else if (score >= 45) {
+                op = Math.random() > 0.5 ? '+' : '-';
+            }
+
+            let num1 = 0, num2 = 0, correctAns = 0;
+            
+            if (op === '+') {
+                num1 = Math.floor(Math.random() * 21) - 10; // -10 to 10
+                num2 = Math.floor(Math.random() * 21) - 10;
+                correctAns = num1 + num2;
+                document.getElementById('lake-question').innerHTML = `${num1} + (${num2 < 0 ? `(${num2})` : num2}) = ?`;
+            } else if (op === '-') {
+                num1 = Math.floor(Math.random() * 21) - 10;
+                num2 = Math.floor(Math.random() * 21) - 10;
+                correctAns = num1 - num2;
+                document.getElementById('lake-question').innerHTML = `${num1} - (${num2 < 0 ? `(${num2})` : num2}) = ?`;
+            } else if (op === '*') {
+                num1 = Math.floor(Math.random() * 13) - 6; // -6 to 6
+                num2 = Math.floor(Math.random() * 13) - 6;
+                correctAns = num1 * num2;
+                document.getElementById('lake-question').innerHTML = `${num1} &times; (${num2 < 0 ? `(${num2})` : num2}) = ?`;
+            } else if (op === '/') {
+                // Ensure divisible
+                correctAns = Math.floor(Math.random() * 11) - 5; // -5 to 5
+                num2 = Math.floor(Math.random() * 7) - 3; // -3 to 3 (exclude 0)
+                if (num2 === 0) num2 = 2;
+                num1 = correctAns * num2;
+                document.getElementById('lake-question').innerHTML = `${num1} &divide; (${num2 < 0 ? `(${num2})` : num2}) = ?`;
+            }
+
+            currentQuestion = {
+                correct: correctAns
+            };
+
+            // Generate distractors
+            let distractors = new Set();
+            distractors.add(correctAns);
+            while (distractors.size < 4) {
+                let off = Math.floor(Math.random() * 7) - 3;
+                if (off !== 0) {
+                    distractors.add(correctAns + off);
+                }
+            }
+
+            const choices = Array.from(distractors).sort(() => Math.random() - 0.5);
+
+            // Render Lilypads with option values
+            const optionsContainer = document.getElementById('lake-options-container');
+            optionsContainer.innerHTML = '';
+            
+            choices.forEach((val, idx) => {
+                const pad = document.createElement('div');
+                pad.className = "relative flex justify-center items-center h-20 cursor-pointer group";
+                pad.innerHTML = `
+                    <!-- Interactive Lilypad Leaf -->
+                    <div class="absolute w-28 h-14 bg-emerald-500 group-hover:bg-emerald-400 border-b-8 border-emerald-700 rounded-full transition transform group-hover:scale-105 flex items-center justify-center shadow-lg">
+                        <span class="text-white font-game text-xl drop-shadow">${val}</span>
+                    </div>
+                `;
+                pad.onclick = () => handleLakeChoice(val, pad);
+                optionsContainer.appendChild(pad);
+            });
+        }
+
+        async function handleLakeChoice(chosenVal, padElement) {
+            // Disable clicks
+            document.querySelectorAll('#lake-options-container > div').forEach(d => d.style.pointerEvents = 'none');
+            
+            const frog = document.getElementById('lake-frog-actor');
+
+            if (chosenVal === currentQuestion.correct) {
+                // Super Jump! Move frog to the clicked pad visually
+                playSound('jump');
+                frog.classList.add('frog-jump');
+                
+                // Move frog onto the leaf position
+                const padRect = padElement.getBoundingClientRect();
+                const containerRect = document.getElementById('lake-options-container').getBoundingClientRect();
+                
+                // Calculate local offsets for translation
+                const targetX = padRect.left + (padRect.width / 2) - (containerRect.left + (containerRect.width / 2));
+                // Move it up on Y axis
+                const targetY = padRect.top - containerRect.bottom + 40;
+
+                frog.style.transform = `translate(${targetX}px, ${targetY}px)`;
+                
+                await new Promise(r => setTimeout(r, 600));
+                frog.classList.remove('frog-jump');
+                
+                showFeedback(true, "Perfect! Excellent leap!");
+                score += 20;
+                lakeRemainingSteps--;
+                document.getElementById('steps-remaining').textContent = lakeRemainingSteps;
+                updateStatusDisplays();
+
+                // Wait for feedback & transition back down nicely
+                await new Promise(r => setTimeout(r, 1000));
+                
+                // Bring frog back to starting pad
+                frog.style.transition = 'none';
+                frog.style.transform = 'translate(0, 0)';
+                // force reflow
+                frog.offsetHeight; 
+                frog.style.transition = 'all 0.5s ease-out';
+
+                if (lakeRemainingSteps <= 0) {
+                    endGame(true, "Congratulations! The frog crossed the giant lilypad lake successfully!");
+                } else {
+                    generateLakeQuestion();
+                }
+            } else {
+                // Incorrect step
+                playSound('wrong');
+                showFeedback(false, "Oh no! That lilypad sank!");
+                lives--;
+                updateStatusDisplays();
+
+                if (lives <= 0) {
+                    endGame(false, "The frog fell in! Practice integer operations to make your jumps safer.");
+                } else {
+                    // shake effect
+                    padElement.classList.add('animate-bounce');
+                    setTimeout(() => {
+                        padElement.classList.remove('animate-bounce');
+                        document.querySelectorAll('#lake-options-container > div').forEach(d => d.style.pointerEvents = 'auto');
+                    }, 800);
+                }
+            }
+        }
+
+        // Shared game end logic
+        function endGame(isWin, message) {
+            playSound(isWin ? 'victory' : 'wrong');
+            
+            const endEmoji = document.getElementById('end-emoji');
+            const endTitle = document.getElementById('end-title');
+            const endDesc = document.getElementById('end-desc');
+            const endScore = document.getElementById('end-score');
+            const endMode = document.getElementById('end-mode');
+            const retryBtn = document.getElementById('retry-btn');
+
+            endScore.textContent = score;
+            endMode.textContent = currentMode === 'line' ? 'Number Line' : 'Lilypad Lake';
+            endDesc.textContent = message;
+
+            if (isWin) {
+                endEmoji.textContent = "🏆";
+                endTitle.textContent = "You Win!";
+                endTitle.className = "text-3xl font-game text-emerald-600";
+            } else {
+                endEmoji.textContent = "😢";
+                endTitle.textContent = "Try Again!";
+                endTitle.className = "text-3xl font-game text-red-500";
+            }
+
+            retryBtn.onclick = () => startGame(currentMode);
+            endModal.classList.remove('hidden');
+        }
+
+        // Shared Interactive Feedback Toast
+        function showFeedback(isCorrect, message) {
+            if (isCorrect) playSound('correct');
+            
+            feedbackText.textContent = message;
+            feedbackEmoji.textContent = isCorrect ? "⭐" : "💥";
+            
+            feedbackToast.className = `absolute top-10 transform scale-100 opacity-100 transition-all duration-300 pointer-events-none z-50 rounded-full text-base md:text-lg font-bold shadow-lg flex items-center gap-2 px-6 py-3 ${isCorrect ? 'bg-emerald-500 text-white' : 'bg-red-500 text-white'}`;
+            
+            setTimeout(() => {
+                feedbackToast.className = "absolute top-10 transform scale-0 opacity-0 transition-all duration-300 pointer-events-none z-50 bg-slate-900 text-white px-6 py-3 rounded-full text-lg font-bold shadow-lg flex items-center gap-2";
+            }, 1800);
+        }
+    </script>
+</body>
+</html>
